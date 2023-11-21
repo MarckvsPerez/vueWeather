@@ -1,9 +1,42 @@
 <template>
   <div
     id="app"
-    :class="(typeof weather.main != 'undefined' && weather.main.temp > 16 ? 'warm':'')"
+    :class="{
+      'cold': typeof weather.main !== 'undefined' && weather.main.temp < 4,
+      'avg': typeof weather.main !== 'undefined' && weather.main.temp >= 4 && weather.main.temp <= 16,
+      'warm': typeof weather.main !== 'undefined' && weather.main.temp > 16
+    }"
   >
     <main>
+      <div class="language-selector">
+        <button
+          @click="setLanguage('es')"
+          :class="currentLanguage.lang == 'es' ? 'active' : ''"
+        >
+          <img
+            src="./assets/icons/spain.png"
+            alt="Botón"
+          >
+        </button>
+        <button
+          @click="setLanguage('fr')"
+          :class="currentLanguage.lang == 'fr' ? 'active' : ''"
+        >
+          <img
+            src="./assets/icons/france.png"
+            alt="Botón"
+          >
+        </button>
+        <button
+          @click="setLanguage('en')"
+          :class="currentLanguage.lang == 'en' ? 'active' : ''"
+        >
+          <img
+            src="./assets/icons/britain.png"
+            alt="Botón"
+          >
+        </button>
+      </div>
       <div class="search-box">
         <input
           type="text"
@@ -14,69 +47,112 @@
         >
       </div>
 
-      <div
-        class="weather-wrapp"
-        v-if="typeof weather.main != 'undefined'"
-      >
-        <div class="location-box">
-          <div class="location">
-            {{ weather.name }}, {{ weather.sys.country }}
+      <div v-if="weather.main">
+        <div class="weather-wrapp">
+          <div class="location-box">
+            <div class="location">
+              {{ `${weather.name}, ${weather.sys.country}` }}
+            </div>
+            <div class="date">
+              {{ dateBuilder() }}
+            </div>
           </div>
-          <div class="date">
-            {{ dateBuilder() }}
-          </div>
-        </div>
 
-        <div class="weather-box">
-          <div class="temp">
-            {{ Math.round(weather.main.temp) }}º
-          </div>
-          <div class="weather">
-            {{ weather.weather[0].description }}
+          <div class="weather-box">
+            <div class="temp">
+              {{ `${Math.round(weather.main.temp)}º` }}
+            </div>
+            <div class="weather">
+              {{ capitalizeFirstLetter(weather.weather[0].description) }}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div
+        v-if="queryError"
+        class="error"
+      >
+        <img
+          :src="urlError"
+          alt=""
+          class="error-image"
+        >
       </div>
     </main>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'App',
-  data() {
-    return {
-      api_key: '67cb310b44ecf636039acc3a0c10caea',
-      url_base: 'https://api.openweathermap.org/data/2.5/',
-      query: '',
-      weather: {},
-    };
-  },
-  methods: {
-    fetchWeather(e) {
-      if (e.key == 'Enter') {
-        fetch(`${this.url_base}weather?q=${this.query}&units=metric&lang=ca&APPID=${this.api_key}`).then((res) => {
-          return res.json();
-        }).then(this.setResutls);
+<script setup>
+import {ref} from 'vue';
+
+import es from '@/locales/es.json';
+import en from '@/locales/en.json';
+import fr from '@/locales/fr.json';
+
+const apiKey = '67cb310b44ecf636039acc3a0c10caea';
+const urlBase = 'https://api.openweathermap.org/data/2.5/';
+const query = ref('');
+const weather = ref({});
+const currentLanguage = ref(es);
+const queryError = ref(false);
+const urlError = ref('');
+
+const fetchWeather = async (e) => {
+  try {
+    if (e.key === 'Enter') {
+      const response = await fetch(`${urlBase}weather?q=${query.value}&units=metric&lang=${currentLanguage.value.lang}&APPID=${apiKey}`);
+
+      if (!response.ok) {
+        weather.value = '';
+        queryError.value = true;
+        urlError.value = `https://http.cat/${response.status}`;
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-    },
-    setResutls(results) {
-      this.weather = results;
-    },
-    dateBuilder() {
-      const d = new Date();
-      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-      const day = days[d.getDay()];
-      const date = d.getDate();
-      const month = months[d.getMonth()];
-      const year = d.getFullYear();
-
-      return `${day} ${date} ${month} ${year}`;
-    },
-  },
+      const results = await response.json();
+      weather.value = results;
+      queryError.value = false;
+    }
+  } catch (error) {
+    console.error('Error fetching weather data:', error.message);
+  }
 };
+
+const dateBuilder = () => {
+  const d = new Date();
+
+  const day = currentLanguage.value.days[d.getDay()];
+  const date = d.getDate();
+  const month = currentLanguage.value.months[d.getMonth()];
+  const year = d.getFullYear();
+
+  return `${day} ${date} ${month} ${year}`;
+};
+
+const setLanguage = (e) => {
+  switch (e) {
+    case 'es':
+      currentLanguage.value = es;
+      break;
+    case 'en':
+      currentLanguage.value = en;
+      break;
+    case 'fr':
+      currentLanguage.value = fr;
+      break;
+
+    default:
+      break;
+  }
+};
+
+const capitalizeFirstLetter = (string) =>{
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
 </script>
+
 
 <style>
 * {
@@ -90,7 +166,7 @@ body {
 }
 
 #app {
-  background-image: url('./assets/cold-bg.jpg');
+  background-image: url('./assets/avg-bg.jpg');
   background-size: cover;
   background-position: bottom;
   transition: 0.4s;
@@ -98,6 +174,10 @@ body {
 
 #app.warm {
   background-image: url('./assets/warm-bg.jpg');
+}
+
+#app.cold {
+  background-image: url('./assets/cold-bg.jpg');
 }
 
 main {
@@ -180,5 +260,40 @@ main {
   font-weight: 700;
   font-style: italic;
   text-shadow: 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.language-selector {
+  height: 50px;
+  align-items: center;
+}
+
+.language-selector button {
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.language-selector img {
+  width: 35px;
+  opacity: 0.6;
+}
+
+.language-selector .active img {
+  opacity: 1
+}
+
+.language-selector img:hover {
+  opacity: 1;
+  transition: 0.4s;
+}
+.error{
+  text-align: center;
+}
+.error-image{
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.25);
+  border-radius: 16px 0px 16px 0px;
 }
 </style>
