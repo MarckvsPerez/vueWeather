@@ -36,15 +36,34 @@
             alt="Botón"
           >
         </button>
+        <button
+          @click="setLanguage('it')"
+          :class="currentLanguage.lang == 'it' ? 'active' : ''"
+        >
+          <img
+            src="./assets/icons/italy.png"
+            alt="Botón"
+          >
+        </button>
       </div>
+
       <div class="search-box">
         <input
           type="text"
           class="search-bar"
-          placeholder="Search..."
+          :placeholder="currentLanguage.placeholder"
           v-model="query"
-          @keypress="fetchWeather"
+          @keypress="handleKeyPress"
         >
+        <button
+          type="button"
+          @click="fetchWeather"
+        >
+          <img
+            src="./assets/icons/search.png"
+            alt="search"
+          >
+        </button>
       </div>
 
       <div v-if="weather.main">
@@ -89,6 +108,7 @@ import {ref} from 'vue';
 import es from '@/locales/es.json';
 import en from '@/locales/en.json';
 import fr from '@/locales/fr.json';
+import it from '@/locales/it.json';
 
 const apiKey = '67cb310b44ecf636039acc3a0c10caea';
 const urlBase = 'https://api.openweathermap.org/data/2.5/';
@@ -100,20 +120,18 @@ const urlError = ref('');
 
 const fetchWeather = async (e) => {
   try {
-    if (e.key === 'Enter') {
-      const response = await fetch(`${urlBase}weather?q=${query.value}&units=metric&lang=${currentLanguage.value.lang}&APPID=${apiKey}`);
+    const response = await fetch(`${urlBase}weather?q=${query.value}&units=metric&lang=${currentLanguage.value.lang}&APPID=${apiKey}`);
 
-      if (!response.ok) {
-        weather.value = '';
-        queryError.value = true;
-        urlError.value = `https://http.cat/${response.status}`;
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const results = await response.json();
-      weather.value = results;
-      queryError.value = false;
+    if (!response.ok) {
+      weather.value = '';
+      queryError.value = true;
+      urlError.value = `https://http.cat/${response.status}`;
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
+
+    const results = await response.json();
+    weather.value = results;
+    queryError.value = false;
   } catch (error) {
     console.error('Error fetching weather data:', error.message);
   }
@@ -141,6 +159,9 @@ const setLanguage = (e) => {
     case 'fr':
       currentLanguage.value = fr;
       break;
+    case 'it':
+      currentLanguage.value = it;
+      break;
 
     default:
       break;
@@ -149,6 +170,12 @@ const setLanguage = (e) => {
 
 const capitalizeFirstLetter = (string) =>{
   return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+const handleKeyPress = (e) => {
+  if (e.key === 'Enter') {
+    fetchWeather();
+  }
 };
 
 </script>
@@ -192,6 +219,28 @@ main {
 .search-box {
   width: 100%;
   margin-bottom: 30px;
+  position: relative;
+}
+
+.search-box button {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  height: 40px;
+  background-color: transparent;
+  border: none;
+}
+
+.search-box img {
+  height: 30px;
+  opacity: 0.8;
+}
+
+.search-box img:hover {
+  height: 35px;
+  transition: 0.4s;
+  cursor: pointer;
+  opacity: 1;
 }
 
 .search-box .search-bar {

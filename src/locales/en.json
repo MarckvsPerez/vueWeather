@@ -22,5 +22,6 @@
         "Thursday",
         "Friday",
         "Saturday"
-    ]
+    ],
+    "placeholder": "Enter a city..."
 }

@@ -22,5 +22,6 @@
         "Jueves",
         "Viernes",
         "Sábado"
-    ]
+    ],
+    "placeholder": "Introduce una ciudad..."
 }

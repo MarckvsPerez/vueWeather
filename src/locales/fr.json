@@ -22,5 +22,6 @@
         "Jeudi",
         "Vendredi",
         "Samedi"
-    ]
+    ],
+    "placeholder": "Saisissez une ville..."
 }
